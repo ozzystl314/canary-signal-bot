@@ -12,8 +12,7 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 def webhook():
     data = request.get_json(silent=True)
     if not data:
-        return jsonify({"status": "error", "message": "No JSON payload 
-received"}), 400
+        return jsonify({"status": "error", "message": "No JSON payload received"}), 400
 
     action = data.get("action", "LONG").upper()
     symbol = data.get("symbol", "MNQ1!")
