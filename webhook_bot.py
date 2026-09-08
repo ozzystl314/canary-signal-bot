@@ -74,3 +74,60 @@ def send_telegram_message(message):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+import os
+import requests
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+
+@app.route("/", methods=["POST"])
+def webhook():
+  print("--- WEBHOOK RECEIVED ---")
+  print(f"Token present: {bool(TELEGRAM_BOT_TOKEN)}")
+  print(f"Chat ID present: {bool(TELEGRAM_CHAT_ID)}")
+
+  data = request.get_json(silent=True)
+  if not data:
+    print("Error: Invalid JSON")
+    return jsonify({"status": "error", "message": "Invalid JSON"}), 400
+
+  action = data.get("action", "ALERT")
+  symbol = data.get("symbol", "UNKNOWN")
+  price = data.get("price", "N/A")
+
+  message = (
+      f"🚨 *Trading Signal* 🚨\n"
+      f"Action: {action}\n"
+      f"Symbol: {symbol}\n"
+      f"Price: {price}"
+  )
+
+  telegram_url = (
+      f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+  )
+  payload = {
+      "chat_id": TELEGRAM_CHAT_ID,
+      "text": message,
+      "parse_mode": "Markdown",
+  }
+
+  try:
+    res = requests.post(telegram_url, json=payload, timeout=3)
+    print(f"Telegram API Response Status: {res.status_code}")
+    print(f"Telegram API Response Body: {res.text}")
+
+    if res.status_code == 200:
+      return jsonify({"status": "success"}), 200
+    return jsonify({"status": "telegram_error", "details": res.text}), 
+500
+  except Exception as e:
+    print(f"Exception during Telegram request: {str(e)}")
+    return jsonify({"status": "error", "message": str(e)}), 500
+
+
+if __name__ == "__main__":
+  app.run(host="0.0.0.0", port=10000)
